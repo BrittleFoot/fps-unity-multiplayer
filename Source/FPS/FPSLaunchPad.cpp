@@ -20,7 +20,7 @@ AFPSLaunchPad::AFPSLaunchPad()
     OverlapComponent->OnComponentBeginOverlap.AddDynamic(this, &AFPSLaunchPad::HandleOverlap);
     OverlapComponent->SetupAttachment(RootComponent);
 
-    LaunchHeight = 0.6f;
+    LaunchPitchAngle = 45.0f;
     LaunchPower = 1200.0f;
 
 }
@@ -36,7 +36,9 @@ void AFPSLaunchPad::HandleOverlap(
 {
     UE_LOG(LogTemp, Log, TEXT("LaunchPad pressed"))
 
-    auto Direction = this->GetActorRotation().Vector() + FVector(0.f, 0.f, LaunchHeight);
+    auto Rotation = this->GetActorRotation();
+    Rotation.Pitch += LaunchPitchAngle;
+    auto Impulse = Rotation.Vector() * LaunchPower;
 
     if (OtherActor == nullptr)
     {
@@ -48,14 +50,13 @@ void AFPSLaunchPad::HandleOverlap(
     auto *Character = Cast<ACharacter>(OtherActor);
     if (Character)
     {
-        Character->LaunchCharacter(Direction * LaunchPower, false, false);
+        Character->LaunchCharacter(Impulse, true, true);
 
         return;
     }
-
-    if (OtherComp)
+    else if (OtherComp && OtherComp->IsSimulatingPhysics())
     {
-        OtherComp->AddImpulse(Direction * LaunchPower, NAME_None, true);
+        OtherComp->AddImpulse(Impulse, NAME_None, true);
     }
 }
 

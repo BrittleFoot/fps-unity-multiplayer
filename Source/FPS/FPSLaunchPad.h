@@ -35,10 +35,10 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Effects")
     UParticleSystem* LaunchFX;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Launch")
-    float LaunchHeight;
+    UPROPERTY(EditInstanceOnly, Category = "Launch")
+    float LaunchPitchAngle;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Launch")
+    UPROPERTY(EditInstanceOnly, Category = "Launch")
     float LaunchPower;
 
     UFUNCTION()
