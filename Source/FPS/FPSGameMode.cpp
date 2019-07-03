@@ -4,24 +4,45 @@
 #include "FPSHUD.h"
 #include "FPSCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
+
 
 AFPSGameMode::AFPSGameMode()
-	: Super()
+        : Super()
 {
-	// set default pawn class to our Blueprinted character
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPersonCPP/Blueprints/FirstPersonCharacter"));
-	DefaultPawnClass = PlayerPawnClassFinder.Class;
+    // set default pawn class to our Blueprinted character
+    static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(
+            TEXT("/Game/FirstPersonCPP/Blueprints/FirstPersonCharacter")
+    );
 
-	// use our custom HUD class
-	HUDClass = AFPSHUD::StaticClass();
+    DefaultPawnClass = PlayerPawnClassFinder.Class;
+
+    // use our custom HUD class
+    HUDClass = AFPSHUD::StaticClass();
 }
 
-void AFPSGameMode::CompleteMission(APawn* InstigatorPawn)
+void AFPSGameMode::CompleteMission(APawn *InstigatorPawn)
 {
-    if (InstigatorPawn)
+    if (InstigatorPawn == nullptr)
+        return;
+
+    InstigatorPawn->DisableInput(nullptr);
+
+    if (SpectatingViewpointClass)
     {
-        UE_LOG(LogTemp, Log, TEXT("Disabling Instigator Pawn Input"))
-        InstigatorPawn->DisableInput(nullptr);
+        TArray<AActor *> ReturnedActors;
+        UGameplayStatics::GetAllActorsOfClass(this, SpectatingViewpointClass, ReturnedActors);
+
+        auto *PlayerController = Cast<APlayerController>(InstigatorPawn->GetController());
+        if (PlayerController && ReturnedActors.Num() > 0)
+        {
+            PlayerController->SetViewTargetWithBlend(ReturnedActors[0], 0.5f, EViewTargetBlendFunction::VTBlend_Cubic);
+        }
+
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SpectatingViewpointClass is null. Cannot change spectating view."))
     }
 
     OnMissionCompleted(InstigatorPawn);
