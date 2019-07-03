@@ -9,6 +9,7 @@
 
 class UBoxComponent;
 class UDecalComponent;
+class USoundBase;
 
 
 UCLASS()
@@ -36,5 +37,8 @@ protected:
             bool bFromSweep,
             const FHitResult &SweepResult
     );
+
+    UPROPERTY(EditDefaultsOnly, Category = "Sound")
+    USoundBase* ObjectiveMissingSound;
 
 };
