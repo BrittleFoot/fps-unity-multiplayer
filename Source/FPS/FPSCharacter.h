@@ -7,6 +7,7 @@
 #include "FPSCharacter.generated.h"
 
 class UInputComponent;
+class UPawnNoiseEmitterComponent;
 
 UCLASS(config=Game)
 class AFPSCharacter : public ACharacter
@@ -121,6 +122,9 @@ protected:
 	void EndTouch(const ETouchIndex::Type FingerIndex, const FVector Location);
 	void TouchUpdate(const ETouchIndex::Type FingerIndex, const FVector Location);
 	TouchData	TouchItem;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+    UPawnNoiseEmitterComponent* NoiseEmitterComponent;
 	
 protected:
 	// APawn interface
