@@ -2,6 +2,7 @@
 
 
 #include "FPSAiGuard.h"
+#include "FPSGameMode.h"
 #include "Perception/PawnSensingComponent.h"
 #include "DrawDebugHelpers.h"
 
@@ -34,6 +35,12 @@ void AFPSAiGuard::OnPawnSeen(APawn *SeenPawn)
     }
     UE_LOG(LogTemp, Log, TEXT("Player spotted"))
     DrawDebugSphere(GetWorld(), SeenPawn->GetActorLocation(), 32.f, 12, FColor::Red, false, 1.f, 0, 1.f);
+
+    auto* GameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+    if (GameMode)
+    {
+        GameMode->CompleteMission(SeenPawn, false);
+    }
 }
 
 
