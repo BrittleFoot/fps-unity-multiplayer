@@ -15,6 +15,7 @@ AFPSAiGuard::AFPSAiGuard()
     OriginalRotation = GetActorRotation();
 
     PawnSensingComponent = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("PawnSensingComponent"));
+    GuardState = EAIState::Idle;
 
 }
 
@@ -33,7 +34,7 @@ void AFPSAiGuard::OnPawnSeen(APawn *SeenPawn)
     {
         return;
     }
-    UE_LOG(LogTemp, Log, TEXT("Player spotted"))
+    SetGuardState(EAIState::Alerted);
     DrawDebugSphere(GetWorld(), SeenPawn->GetActorLocation(), 32.f, 12, FColor::Red, false, 1.f, 0, 1.f);
 
     auto* GameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
@@ -46,12 +47,17 @@ void AFPSAiGuard::OnPawnSeen(APawn *SeenPawn)
 
 void AFPSAiGuard::OnNoiseHeard(APawn* NosieInstigator, const FVector& Location, float Volume)
 {
+    if (GuardState == EAIState::Alerted)
+    {
+        return;
+    }
+
     if (NosieInstigator == nullptr)
     {
         return;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Something heard"))
+    SetGuardState(EAIState::Suspicious);
     DrawDebugSphere(GetWorld(), Location, 32.f, 12, FColor::Green, false, 3.f, 0, 1.f);
 
     auto Direction = Location - GetActorLocation();
@@ -70,8 +76,27 @@ void AFPSAiGuard::OnNoiseHeard(APawn* NosieInstigator, const FVector& Location, 
 
 void AFPSAiGuard::ResetOrientation()
 {
+    if (GuardState == EAIState::Alerted)
+    {
+        return;
+    }
+    SetGuardState(EAIState::Idle);
     SetActorRotation(OriginalRotation);
 }
+
+
+void AFPSAiGuard::SetGuardState(EAIState NewState)
+{
+    if (NewState == GuardState)
+    {
+        return;
+    }
+
+    GuardState = NewState;
+
+    OnStateChanged(NewState);
+}
+
 
 // Called every frame
 void AFPSAiGuard::Tick(float DeltaTime)
