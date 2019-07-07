@@ -7,6 +7,7 @@
 #include "FPSAiGuard.generated.h"
 
 class UPawnSensingComponent;
+class ATargetPoint;
 
 
 UENUM(BlueprintType)
@@ -17,6 +18,16 @@ enum class EAIState : uint8
     Suspicious,
 
     Alerted
+};
+
+UENUM(BlueprintType)
+enum class EAIPatrollingBehaviour : uint8
+{
+    Loop,
+
+    BackAndForward,
+
+    Once
 };
 
 UCLASS()
@@ -34,6 +45,19 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UPawnSensingComponent* PawnSensingComponent;
+
+	UPROPERTY(EditInstanceOnly, Category = "AI")
+	TArray<ATargetPoint*> PatrolPath;
+
+	UPROPERTY(EditInstanceOnly, Category = "AI")
+    EAIPatrollingBehaviour PatrollingBehaviour;
+
+	UPROPERTY(BlueprintReadOnly, Category = "AI")
+	uint8 CurrentPatrolWaypointIndex;
+
+	bool bForwardLoopTrace;
+
+	bool bPathDone;
 
 	UFUNCTION()
 	void OnPawnSeen(APawn* SeenPawn);
@@ -54,6 +78,10 @@ protected:
     EAIState GuardState;
 
     void SetGuardState(EAIState NewState);
+
+    ATargetPoint* GetCurrentWaypoint();
+
+    void SkipWaypoint();
 
 public:	
 	// Called every frame

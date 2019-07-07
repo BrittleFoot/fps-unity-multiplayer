@@ -5,6 +5,8 @@
 #include "FPSGameMode.h"
 #include "Perception/PawnSensingComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/TargetPoint.h"
+#include "AIController.h"
 
 
 // Sets default values
@@ -16,6 +18,9 @@ AFPSAiGuard::AFPSAiGuard()
 
     PawnSensingComponent = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("PawnSensingComponent"));
     GuardState = EAIState::Idle;
+
+    bForwardLoopTrace = true;
+    bPathDone = false;
 
 }
 
@@ -37,7 +42,7 @@ void AFPSAiGuard::OnPawnSeen(APawn *SeenPawn)
     SetGuardState(EAIState::Alerted);
     DrawDebugSphere(GetWorld(), SeenPawn->GetActorLocation(), 32.f, 12, FColor::Red, false, 1.f, 0, 1.f);
 
-    auto* GameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+    auto *GameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
     if (GameMode)
     {
         GameMode->CompleteMission(SeenPawn, false);
@@ -45,7 +50,7 @@ void AFPSAiGuard::OnPawnSeen(APawn *SeenPawn)
 }
 
 
-void AFPSAiGuard::OnNoiseHeard(APawn* NosieInstigator, const FVector& Location, float Volume)
+void AFPSAiGuard::OnNoiseHeard(APawn *NosieInstigator, const FVector &Location, float Volume)
 {
     if (GuardState == EAIState::Alerted)
     {
@@ -103,5 +108,91 @@ void AFPSAiGuard::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    if (PatrolPath.Num() == 0)
+        return;
+
+    auto *AiController = Cast<AAIController>(Controller);
+    if (AiController == nullptr)
+        return;
+
+    if (GuardState != EAIState::Idle)
+    {
+        AiController->StopMovement();
+        return;
+    }
+
+    auto MoveRequestResult = AiController->MoveToActor(GetCurrentWaypoint(), 5.f);
+
+    switch (MoveRequestResult)
+    {
+        case EPathFollowingRequestResult::AlreadyAtGoal:
+            SkipWaypoint();
+            break;
+        case EPathFollowingRequestResult::Failed:
+            UE_LOG(LogTemp, Warning, TEXT("Move Request failed to an actor"))
+            SkipWaypoint();
+            break;
+        case EPathFollowingRequestResult::RequestSuccessful:
+        default:
+            break;
+    }
 }
 
+
+ATargetPoint *AFPSAiGuard::GetCurrentWaypoint()
+{
+    return PatrolPath[CurrentPatrolWaypointIndex];
+}
+
+void AFPSAiGuard::SkipWaypoint()
+{
+    auto NumWaypoints = PatrolPath.Num();
+    if (NumWaypoints < 2)
+        return;
+
+    if (PatrollingBehaviour == EAIPatrollingBehaviour::Loop)
+    {
+        CurrentPatrolWaypointIndex = (CurrentPatrolWaypointIndex + 1) % NumWaypoints;
+        return;
+    }
+
+    if (PatrollingBehaviour == EAIPatrollingBehaviour::Once)
+    {
+        if (bPathDone)
+            return;
+
+        CurrentPatrolWaypointIndex += 1;
+        if (CurrentPatrolWaypointIndex >= NumWaypoints) {
+            CurrentPatrolWaypointIndex -= 1;
+            bPathDone = true;
+        }
+        return;
+    }
+
+    if (bForwardLoopTrace)
+    {
+        auto next = CurrentPatrolWaypointIndex + 1;
+        if (next >= NumWaypoints)
+        {
+            CurrentPatrolWaypointIndex -= 1;
+            bForwardLoopTrace = !bForwardLoopTrace;
+        }
+        else
+        {
+            CurrentPatrolWaypointIndex = next;
+        }
+    }
+    else
+    {
+        auto next = CurrentPatrolWaypointIndex - 1;
+        if (next < 0)
+        {
+            CurrentPatrolWaypointIndex += 1;
+            bForwardLoopTrace = !bForwardLoopTrace;
+        }
+        else
+        {
+            CurrentPatrolWaypointIndex = next;
+        }
+    }
+}
