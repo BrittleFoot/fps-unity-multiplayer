@@ -5,6 +5,8 @@
 #include "FPSCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "FPSGameState.h"
+#include "Engine/World.h"
 
 
 AFPSGameMode::AFPSGameMode()
@@ -19,31 +21,42 @@ AFPSGameMode::AFPSGameMode()
 
     // use our custom HUD class
     HUDClass = AFPSHUD::StaticClass();
+
+    GameStateClass = AFPSGameState::StaticClass();
 }
 
 void AFPSGameMode::CompleteMission(APawn *InstigatorPawn, bool bIsMissionSuccess)
 {
-    if (InstigatorPawn == nullptr)
-        return;
-
-    InstigatorPawn->DisableInput(nullptr);
-
-    if (SpectatingViewpointClass)
+    if (InstigatorPawn)
     {
-        TArray<AActor *> ReturnedActors;
-        UGameplayStatics::GetAllActorsOfClass(this, SpectatingViewpointClass, ReturnedActors);
-
-        auto *PlayerController = Cast<APlayerController>(InstigatorPawn->GetController());
-        if (PlayerController && ReturnedActors.Num() > 0)
+        if (SpectatingViewpointClass)
         {
-            PlayerController->SetViewTargetWithBlend(ReturnedActors[0], 0.5f, EViewTargetBlendFunction::VTBlend_Cubic);
+            TArray<AActor *> ReturnedActors;
+            UGameplayStatics::GetAllActorsOfClass(this, SpectatingViewpointClass, ReturnedActors);
+
+            if (ReturnedActors.Num() > 0)
+            {
+                for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++)
+                {
+                    auto *PC = It->Get();
+                    if (PC)
+                    {
+                        PC->SetViewTargetWithBlend(ReturnedActors[0], 0.5f, EViewTargetBlendFunction::VTBlend_Cubic);
+                    }
+                }
+            }
+
         }
-
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SpectatingViewpointClass is null. Cannot change spectating view."))
+        }
     }
-    else
+
+    auto *GameState = GetGameState<AFPSGameState>();
+    if (GameState)
     {
-        UE_LOG(LogTemp, Warning, TEXT("SpectatingViewpointClass is null. Cannot change spectating view."))
+        GameState->MulticastOnMissionComplete(InstigatorPawn, bIsMissionSuccess);
     }
-
     OnMissionCompleted(InstigatorPawn, bIsMissionSuccess);
 }

@@ -7,6 +7,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/TargetPoint.h"
 #include "AIController.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values
@@ -99,7 +100,19 @@ void AFPSAiGuard::SetGuardState(EAIState NewState)
 
     GuardState = NewState;
 
-    OnStateChanged(NewState);
+    OnRep_GuardState();
+}
+
+void AFPSAiGuard::OnRep_GuardState()
+{
+    OnStateChanged(GuardState);
+}
+
+void AFPSAiGuard::GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(AFPSAiGuard, GuardState);
 }
 
 
