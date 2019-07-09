@@ -16,3 +16,6 @@ Saved
 *.xcworkspace
 
 cmake-build-debug
+
+WindowsNoEditor
+WindowsNoEditor.7z
